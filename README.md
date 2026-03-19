@@ -2,16 +2,6 @@
 
 Predicts equipment failures before they occur using IoT sensor data and machine learning.
 
-## Project Milestones
-
-| # | Milestone | Status |
-|---|-----------|--------|
-| 1 | Data Collection, Exploration & Preprocessing | ✅ Done |
-| 2 | Advanced Data Analysis & Feature Engineering | ✅ Done |
-| 3 | Model Development & Optimization | ✅ Done |
-| 4 | MLOps, Deployment & Monitoring | 🔄 In Progress |
-| 5 | Final Documentation & Presentation | ⏳ Pending |
-
 ## Dataset
 [AI4I 2020 Predictive Maintenance Dataset](https://archive.ics.uci.edu/ml/datasets/AI4I+2020+Predictive+Maintenance+Dataset)
 Place the CSV at `data/raw/ai4i2020.csv`.
@@ -45,7 +35,7 @@ predictive_maintenance/
 
 ```bash
 # 1. Clone and install
-git clone <your-repo-url>
+git clone https://github.com/nhahub/NHA-4-190.git
 cd predictive_maintenance
 pip install -r requirements.txt
 
@@ -77,11 +67,3 @@ python main.py --skip-optimization
 | `Torque_Rate_of_Change` | Time-series | Rate of torque change per step |
 | `Rolling_Avg_Temp` | Time-series | Smoothed temperature trend |
 | `Rolling_Std_Torque` | Time-series | Torque instability measure |
-
-## Models
-
-| Model | Notes |
-|-------|-------|
-| Random Forest | Baseline; interpretable feature importances |
-| XGBoost (base) | Gradient boosting baseline |
-| XGBoost (tuned) | GridSearch on depth, learning_rate, n_estimators; optimized for **recall** |
