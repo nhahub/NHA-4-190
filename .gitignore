@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+dist/
+build/
+.env
+.venv/
+venv/
+
+# Data (never commit raw data to git)
+data/raw/*.csv
+data/raw/*.zip
+
+# Models (large binary files — use Git LFS or cloud storage)
+models/*.joblib
+models/*.pkl
+
+# Outputs
+outputs/
+
+# Notebooks checkpoints
+.ipynb_checkpoints/
+
+# IDE
+.vscode/
+.idea/
+*.DS_Store

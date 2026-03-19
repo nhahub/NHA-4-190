@@ -1,0 +1,50 @@
+# ============================================================
+# Predictive Maintenance - Central Configuration
+# ============================================================
+
+data:
+  raw_path: "data/raw/ai4i2020.csv"
+  test_size: 0.2
+  shuffle: false  # Must be false for time-series integrity
+
+features:
+  rolling_window: 5
+  drop_columns: ["UDI", "Product ID"]
+  rename_map:
+    Type: Type
+    Air temperature [K]: Air_Temp
+    Process temperature [K]: Process_Temp
+    Rotational speed [rpm]: Rotational_Speed
+    Torque [Nm]: Torque
+    Tool wear [min]: Tool_Wear
+    Machine failure: Machine_Failure
+    TWF: TWF
+    HDF: HDF
+    PWF: PWF
+    OSF: OSF
+    RNF: RNF
+
+smote:
+  random_state: 42
+
+models:
+  random_forest:
+    n_estimators: 100
+    random_state: 42
+  xgboost:
+    eval_metric: "logloss"
+    random_state: 42
+  xgb_grid_search:
+    max_depth: [3, 5, 7]
+    learning_rate: [0.01, 0.1, 0.2]
+    n_estimators: [100, 200]
+    scoring: "recall"
+    cv: 3
+    n_jobs: -1
+
+artifacts:
+  model_dir: "models"
+  rf_model_name: "random_forest_model.joblib"
+  xgb_model_name: "xgboost_model.joblib"
+  best_model_name: "best_model.joblib"
+  scaler_name: "scaler.joblib"
