@@ -48,3 +48,17 @@ artifacts:
   xgb_model_name: "xgboost_model.joblib"
   best_model_name: "best_model.joblib"
   scaler_name: "scaler.joblib"
+
+deployment:
+  host: "0.0.0.0"
+  port: 8000
+  model_path: "models/best_model.joblib"
+  threshold_path: "models/random_forest_(optimized)_threshold.json"
+  log_path: "outputs/monitoring/predictions_log.csv"
+  feedback_log_path: "outputs/monitoring/feedback_log.csv"
+
+monitoring:
+  psi_threshold: 0.20
+  recall_threshold: 0.80
+  min_labeled_samples: 50
+  report_path: "outputs/monitoring/latest_monitoring_report.json"

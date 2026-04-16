@@ -49,6 +49,34 @@ python main.py
 python main.py --skip-optimization
 ```
 
+## Milestone 4 (MLOps, Deployment, Monitoring)
+
+### 1) Start real-time API
+
+```bash
+uvicorn app:app --host 0.0.0.0 --port 8000 --reload
+```
+
+### 2) API endpoints
+
+- `GET /health` → service + model status
+- `POST /predict` → real-time failure prediction
+- `POST /feedback` → send true outcome labels for online evaluation
+- `GET /metrics` → prediction volume + alert rate
+- `GET /drift` → PSI-based drift check
+
+### 3) Run monitoring job
+
+```bash
+python monitoring/monitor.py
+```
+
+Optional auto-retrain when thresholds are breached:
+
+```bash
+python monitoring/monitor.py --retrain --skip-optimization
+```
+
 ## Key Design Decisions
 
 - **No shuffle in train/test split** — temporal order is preserved for time-series integrity
