@@ -14,11 +14,9 @@ Mermaid blocks render on GitHub when viewing these Markdown files.
 
 ## Reports and presentation
 
-If your brief states that **all** coursework artefacts must appear in the repository, add the final report and slides as PDFs in [`submission/`](submission/) and list them below:
+Submitted PDFs in [`submission/`](submission/):
 
-- `FINAL_PROJECT_REPORT.pdf`
-- `FINAL_PRESENTATION.pdf`
+- [FINAL_PROJECT_REPORT.pdf](submission/FINAL_PROJECT_REPORT.pdf)
+- [FINAL_PRESENTATION.pdf](submission/FINAL_PRESENTATION.pdf)
 
-**Do you have to?** It depends on the module rules. Many cohorts submit the report through a learning platform and use GitHub only for source code; others require a single submission bundle. If the rubric says “upload documentation to GitHub,” include the PDFs or a **released** asset and link it in this file so assessors find them in one place.
-
-**Repository size:** Large PDFs increase clone time. Alternatives: GitHub Release attachments, institutional cloud link with stable access, or LFS for very large files.
+Keep copies on the LMS too if that is the primary hand-in. Large binaries make clones heavier; use Git LFS or a Release if the files grow further.
