@@ -1,33 +1,32 @@
-# Course Feedback & Literature Review Trail
+# Review feedback and marking alignment
 
-Use this document to satisfy rubric items that ask for **lecturer feedback**, **suggested improvements**, and **alignment with grading criteria**.
+Maintain this appendix if your programme asks for a record of supervisor comments, literature review notes, or explicit mapping to the mark scheme.
 
-## 1. Instructor / reviewer feedback
+## 1. Formal feedback received
 
-| Date | Source (e.g. lecture, review session) | Feedback summary | Linked deliverable |
-|------|----------------------------------------|--------------------|--------------------|
-| *YYYY-MM-DD* | *e.g. Milestone review* | *Paste comment here* | *e.g. docs/02_requirements.md §4* |
+| Date | Occasion | Summary | Reference |
+|------|----------|---------|-----------|
+| | | | |
 
-## 2. How feedback was addressed
+## 2. Response to feedback
 
-| Feedback | Action taken | Where to verify |
-|----------|--------------|-----------------|
-| *Example: “Document test plan”* | Added `docs/05_testing.md` | `docs/05_testing.md` |
-| *Add your rows* | | |
+| Topic raised | Change made | Where it appears |
+|--------------|-------------|------------------|
+| | | |
 
-## 3. Suggested improvements (post-course)
+## 3. Follow-up work (optional)
 
-*Short bullets you or your instructor noted — optional for grading but useful for portfolio.*
+Short list of improvements suggested after formal review, for portfolio or continuation:
 
-- …
+- 
 
-## 4. Grading criteria mapping (fill per syllabus)
+## 4. Marking criteria cross-reference
 
-| Criterion (from course handbook) | Evidence in this repo |
-|----------------------------------|------------------------|
-| Documentation | `docs/` folder, `README.md`, `MLOPS_REPORT.md` |
+Replace the left column with the wording from your official handbook.
+
+| Criterion | Evidence in repository |
+|-----------|-------------------------|
+| Documentation | `docs/`, root `README.md`, `MLOPS_REPORT.md` |
 | Implementation | `src/`, `app.py`, `main.py`, `monitoring/` |
-| Testing | `docs/05_testing.md`, CI workflow |
-| Presentation | Your submitted slides/PDF (external to repo if required) |
-
-Replace the left column with the **exact** criteria names from your institution’s mark scheme.
+| Verification | `docs/05_testing.md`, `.github/workflows/ci.yml` |
+| Oral or written presentation | PDF or slides (see `docs/README.md` — deliverables) |

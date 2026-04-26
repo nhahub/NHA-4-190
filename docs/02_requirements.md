@@ -1,62 +1,59 @@
 # Requirements
 
-## 1. Stakeholder analysis
+## Stakeholders
 
-| Stakeholder | Interest | Expectations |
-|-------------|----------|--------------|
-| **Maintenance / operations** | Reduce unplanned downtime | Timely failure alerts; interpretable signals (e.g. tool wear, torque variability) |
-| **Data / ML engineers** | Reliable pipeline & deployment | Config-driven training; versioned artifacts; parity between batch and online features |
-| **IT / platform** | Runnable service | Documented install, ports, dependencies; health checks |
-| **Course assessors** | Traceable design & testing | Requirements, design artifacts, test evidence, GitHub documentation |
+| Stakeholder | Primary concern |
+|-------------|-----------------|
+| Maintenance and operations | Fewer unplanned stops; clear alert semantics |
+| ML and data engineering | Reproducible training, versioned artifacts, identical features offline and online |
+| Platform / IT | Installable service, documented ports and dependencies, health endpoint |
+| Assessment | Traceable requirements, design, tests, and repository structure |
 
-## 2. User stories
+## Needs (user-oriented)
 
-1. **As a** maintenance analyst, **I want** to send current sensor readings to an API **so that** I receive a failure probability and alert flag without running a notebook.
-2. **As an** ML engineer, **I want** training to be one command from config **so that** results are reproducible and comparable across runs.
-3. **As an** operator, **I want** to record actual outcomes after a prediction **so that** online precision/recall can be tracked.
-4. **As a** reliability engineer, **I want** drift detection against training distributions **so that** model refresh can be triggered before performance collapses.
+- Integrate live sensor readings without running notebooks: HTTP API with probability and binary alert.
+- Re-run training from configuration: single entry point (`main.py`) and one YAML source of truth.
+- Record ground truth after predictions: feedback keyed by `request_id` for later evaluation.
+- Detect distribution shift: drift indicator derived from logged features versus training data.
 
-## 3. Use cases (summary)
+## Use cases (summary)
 
-| ID | Actor | Goal |
-|----|-------|------|
-| UC-1 | Client system | Submit sensor event → receive `failure_probability`, `predicted_failure`, `request_id` |
-| UC-2 | Operator | Submit feedback with `request_id` and `actual_failure` |
-| UC-3 | Ops / engineer | Check service and model metadata |
-| UC-4 | Ops / engineer | Inspect aggregate prediction metrics |
-| UC-5 | Ops / engineer | Run drift check (PSI) over recent logs |
+| ID | Actor | Outcome |
+|----|--------|---------|
+| UC-1 | Calling system | Submit sensor payload; receive `failure_probability`, `predicted_failure`, `request_id` |
+| UC-2 | Operator | Send `request_id` and `actual_failure` for a past prediction |
+| UC-3 | Engineer | Read model and threshold metadata from `/health` |
+| UC-4 | Engineer | Read volume and alert rate from `/metrics` |
+| UC-5 | Engineer | Run PSI-based drift summary from `/drift` |
 
-Detailed flows appear as sequence diagrams in [03_system_design.md](03_system_design.md).
+Interaction detail is shown in [03_system_design.md](03_system_design.md).
 
-## 4. Functional requirements
+## Functional requirements
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| FR-1 | Load raw AI4I CSV, drop non-predictive IDs, rename columns per config | Must |
-| FR-2 | Engineer physics and rolling-window features consistent with training | Must |
-| FR-3 | Train and evaluate at least Random Forest and XGBoost; persist best artifact | Must |
-| FR-4 | Expose `GET /health` with model name, threshold, feature count | Must |
-| FR-5 | Expose `POST /predict` accepting validated sensor payload (see OpenAPI / `app.py`) | Must |
-| FR-6 | Append each prediction to CSV log with timestamp and `request_id` | Must |
-| FR-7 | Expose `POST /feedback` to log actual labels | Should |
-| FR-8 | Expose `GET /metrics` for volume and predicted failure rate from logs | Should |
-| FR-9 | Expose `GET /drift` for PSI-based comparison vs training reference | Should |
-| FR-10 | Monitoring script reads logs and config thresholds; optional `--retrain` | Should |
+| FR-1 | Ingest AI4I CSV; drop identifiers per config; apply rename map | Must |
+| FR-2 | Build physics and rolling-window features consistent with training | Must |
+| FR-3 | Train and evaluate Random Forest and XGBoost; persist selected model | Must |
+| FR-4 | Implement `GET /health` with model name, threshold, expected feature count | Must |
+| FR-5 | Implement `POST /predict` with validated body per `app.py` | Must |
+| FR-6 | Append each prediction to the configured CSV log | Must |
+| FR-7 | Implement `POST /feedback` | Should |
+| FR-8 | Implement `GET /metrics` from the prediction log | Should |
+| FR-9 | Implement `GET /drift` against training reference features | Should |
+| FR-10 | Batch monitoring script with optional `--retrain` | Should |
 
-## 5. Non-functional requirements
+## Non-functional requirements
 
-| ID | Category | Requirement |
-|----|----------|---------------|
-| NFR-1 | **Config** | Hyperparameters and paths live in `config/config.yaml`, not hardcoded in business logic |
-| NFR-2 | **Integrity** | Train/test split does not shuffle rows; SMOTE applies only to training split |
-| NFR-3 | **Robustness** | API validates payload types/ranges where defined (Pydantic); errors return HTTP 500 with logged exception |
-| NFR-4 | **Observability** | Predictions and feedback persisted to CSV under `outputs/monitoring/` |
-| NFR-5 | **Security (course / demo)** | No authentication in default demo; production would add TLS, authn/z, and secret management |
-| NFR-6 | **Portability** | Python 3.10+ recommended; dependencies pinned in `requirements.txt` |
+| ID | Topic | Requirement |
+|----|--------|-------------|
+| NFR-1 | Configuration | Training and deployment settings live in `config/config.yaml` |
+| NFR-2 | Data integrity | No row shuffle on split; SMOTE only on training data |
+| NFR-3 | API behaviour | Request validation via Pydantic; failures logged and returned as HTTP errors |
+| NFR-4 | Traceability | Predictions and feedback written under `outputs/monitoring/` |
+| NFR-5 | Hardening | Demo deployment has no auth; production would add TLS, access control, and secret handling |
+| NFR-6 | Environment | Python 3.10+; dependencies listed in `requirements.txt` |
 
-## 6. UI / UX
+## User interface
 
-There is **no end-user graphical UI** in this repository; interaction is via **HTTP API** (and optional `curl`/Postman). For course rubrics that require UI artifacts, use:
-
-- **API as the “interface”:** example requests in [06_user_manual.md](06_user_manual.md).
-- **Optional:** a single wireframe of a future “fleet dashboard” is described in [03_system_design.md](03_system_design.md) as future work.
+There is no separate graphical application. Clients use the REST API (see [06_user_manual.md](06_user_manual.md)) or the interactive OpenAPI UI at `/docs` when the server is running. If a module requires UI mock-ups, treat the OpenAPI contract and example payloads as the interface specification, or attach a separate dashboard concept as supplementary material.

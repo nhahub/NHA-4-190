@@ -1,71 +1,51 @@
-# User Manual — Predictive Maintenance API
+# User manual — predictive maintenance API
 
-This guide is for **operators** and **integrators** who need to run the service and interpret outputs. Developers should also read `README.md` and `docs/03_system_design.md`.
+Audience: operators integrating the service and engineers running it locally. Implementation detail is in `README.md` and `docs/03_system_design.md`.
 
-## 1. What the system does
+## Purpose
 
-The API accepts **sensor readings** (temperature, torque, speed, tool wear, etc.) and returns:
+The service turns a single sensor snapshot (plus optional failure flags) into:
 
-- **`failure_probability`** — estimated chance of failure (0–1).
-- **`predicted_failure`** — 1 if probability ≥ configured threshold, else 0.
-- **`request_id`** — unique id for logging and optional feedback.
+- `failure_probability` — score between 0 and 1  
+- `predicted_failure` — 1 if the score meets or exceeds the deployed threshold  
+- `request_id` — identifier for logging and optional feedback  
 
-## 2. Prerequisites
+## Setup
 
-1. Python **3.10+** installed.
-2. Repository cloned; dependencies installed:
+1. Install Python 3.10 or newer.  
+2. Clone the repository and run `pip install -r requirements.txt`.  
+3. Place the AI4I CSV at `data/raw/ai4i2020.csv`.  
+4. Train once: `python main.py`, or `python main.py --skip-optimization` for a faster pass.  
+5. Confirm `config/config.yaml` points to existing files for `deployment.model_path` and `deployment.threshold_path`.
 
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-3. Training data placed at `data/raw/ai4i2020.csv` (see README for dataset link).
-4. Model trained at least once:
-
-   ```bash
-   python main.py
-   ```
-
-   or fast debug:
-
-   ```bash
-   python main.py --skip-optimization
-   ```
-
-5. Config paths in `config/config.yaml` point to existing **`deployment.model_path`** and **`deployment.threshold_path`**.
-
-## 3. Starting the service
+## Starting the server
 
 ```bash
 uvicorn app:app --host 0.0.0.0 --port 8000
 ```
 
-- **Health check:** open or request `http://127.0.0.1:8000/health`.
-- **Interactive docs:** `http://127.0.0.1:8000/docs` (Swagger UI).
+- Health: `http://127.0.0.1:8000/health`  
+- Swagger UI: `http://127.0.0.1:8000/docs`
 
-## 4. Calling `POST /predict`
+## `POST /predict`
 
-**Endpoint:** `POST /predict`  
-**Content-Type:** `application/json`
+Content-Type: `application/json`.
 
-**Body fields (required unless noted):**
-
-| Field | Type | Notes |
-|-------|------|--------|
-| `asset_id` | string | Optional in schema default `"default"`; use one id per machine for rolling features |
-| `Type` | string | Exactly `L`, `M`, or `H` |
-| `Air_Temp` | number | Kelvin |
-| `Process_Temp` | number | Kelvin |
-| `Rotational_Speed` | number | RPM |
+| Field | Type | Note |
+|-------|------|------|
+| `asset_id` | string | Per-machine id for rolling features; default if omitted |
+| `Type` | string | `L`, `M`, or `H` only |
+| `Air_Temp`, `Process_Temp` | number | Kelvin |
+| `Rotational_Speed` | number | rpm |
 | `Torque` | number | Nm |
 | `Tool_Wear` | number | minutes |
-| `TWF` … `RNF` | integer 0/1 | Optional failure flags; default 0 |
+| `TWF` … `RNF` | 0 or 1 | Optional; default 0 |
 
-**Example response:**
+Example response:
 
 ```json
 {
-  "request_id": "8f2c…",
+  "request_id": "b2c9f1a0-…",
   "model": "RandomForestClassifier",
   "threshold": 0.48,
   "failure_probability": 0.61,
@@ -73,66 +53,52 @@ uvicorn app:app --host 0.0.0.0 --port 8000
 }
 ```
 
-**Interpretation:**
+`predicted_failure: 1` means the current policy would raise an alert. `failure_probability` supports ranking assets or adjusting sensitivity without retraining.
 
-- **`predicted_failure: 1`** means “alert / plan intervention” under current threshold policy.
-- **`failure_probability`** supports ranking multiple assets or tuning alert aggressiveness.
+Each successful call appends one line to the path in `deployment.log_path` (default under `outputs/monitoring/`).
 
-Each successful call **appends one row** to `outputs/monitoring/predictions_log.csv` (path from config).
+## `POST /feedback`
 
-## 5. Submitting feedback — `POST /feedback`
-
-After you know the true outcome for a prediction, send:
+After the true outcome is known:
 
 ```json
 {
-  "request_id": "<uuid from predict>",
-  "actual_failure": 1
+  "request_id": "<value from predict>",
+  "actual_failure": 0
 }
 ```
 
-`actual_failure` must be `0` or `1`. This supports **online evaluation** used by the monitoring job.
+`actual_failure` must be 0 or 1. Rows go to `deployment.feedback_log_path`.
 
-## 6. Metrics — `GET /metrics`
+## `GET /metrics`
 
-Returns aggregate counts from the prediction log:
+Returns totals from the prediction log, including count and mean predicted failure rate.
 
-- **`total_predictions`**
-- **`predicted_failure_rate`** — mean of binary predicted flags in the log
+## `GET /drift`
 
-## 7. Drift — `GET /drift`
+Compares logged feature distributions to the training reference using PSI. With no log or fewer than 100 predictions, the service returns an insufficient-data message. Otherwise expect average PSI, a drift flag, and the strongest contributors.
 
-Compares recent prediction feature distributions to the **training reference** via **PSI**.
+If `drift_detected` is true, review data quality and consider `monitoring/monitor.py` (and retrain if your process allows).
 
-- If there is **no log** or **fewer than 100** predictions, the response explains insufficient data.
-- Otherwise you receive **`avg_psi`**, **`drift_detected`**, and top features.
-
-**Alerting:** When `drift_detected` is true, investigate data quality and consider retraining (see monitoring script).
-
-## 8. Monitoring job (batch)
+## Batch monitoring
 
 ```bash
 python monitoring/monitor.py
-```
-
-Optional:
-
-```bash
 python monitoring/monitor.py --retrain --skip-optimization
 ```
 
-Read `monitoring/monitor.py` and `config/config.yaml` → `monitoring` for thresholds (`psi_threshold`, `recall_threshold`, etc.).
+Thresholds such as `psi_threshold` and `recall_threshold` are in `config/config.yaml` under `monitoring`.
 
-## 9. Troubleshooting
+## Troubleshooting
 
-| Symptom | Likely cause | What to do |
-|---------|--------------|------------|
-| Import / module errors | Dependencies not installed | `pip install -r requirements.txt` |
-| Model not found | Paths in YAML wrong or training not run | Run `python main.py`; check `deployment.model_path` |
-| 422 on predict | Invalid `Type` or bad JSON | Use L/M/H only; validate body |
-| Drift always insufficient | Not enough logged predictions | Generate ≥100 predictions first |
-| Rolling features look odd | Mixed `asset_id` on one stream | Use consistent `asset_id` per machine |
+| Issue | Likely cause | Action |
+|-------|----------------|--------|
+| Import errors | Missing packages | `pip install -r requirements.txt` |
+| Model load failure | Wrong path or no training | Run `python main.py`; verify YAML |
+| 422 on predict | Invalid `Type` or malformed JSON | Fix body against `/docs` |
+| Drift never ready | Too few logged predictions | Generate more traffic or lower the threshold only if appropriate |
+| Odd rolling behaviour | Mixed streams on one `asset_id` | One stable `asset_id` per physical asset |
 
-## 10. Security note (demo vs production)
+## Security
 
-The demo server binds to `0.0.0.0` for accessibility. In production, use **TLS**, **authentication**, network restrictions, and **secrets management** — not included in this course baseline.
+The sample binds to all interfaces for lab use. Production deployments should use TLS, network policy, authentication, and managed secrets; those are not part of this codebase.

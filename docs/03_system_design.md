@@ -1,63 +1,63 @@
-# System Analysis & Design
+# System analysis and design
 
-## 1. Problem statement & objectives
+## Problem and goals
 
-**Problem:** Reactive maintenance causes downtime and cost; scheduled maintenance is inefficient. Sensor-rich equipment can support **condition-based** decisions if failure risk is estimated accurately and kept stable in production.
+Unplanned failures drive downtime and cost; calendar-based maintenance wastes effort. The system estimates failure risk from sensor streams so maintenance can be triggered on condition rather than only on schedule or after breakdown.
 
-**Objectives:** Ingest IoT-style readings, engineer discriminative features, train binary classifiers with imbalance-aware validation, deploy a **real-time API** with **monitoring** aligned to the training pipeline.
+Goals: ingest readings compatible with AI4I 2020, apply the same feature logic in batch and online settings, train and select a binary classifier under imbalance, expose inference over HTTP, and support basic production checks (logging, drift, optional retrain).
 
-## 2. High-level architecture
+## Architecture
 
-The system follows a **modular Python** layout: offline **training pipeline** (`main.py` + `src/`) and online **serving** (`app.py` + `src/serving.py`) sharing **YAML config** and **joblib** artifacts.
+Training is batch-oriented (`main.py`, modules under `src/`). Inference is a FastAPI application (`app.py`) that reuses preprocessing and feature logic via `src/serving.py`. Both paths read `config/config.yaml` and the same joblib model and threshold files.
 
 ```mermaid
 flowchart LR
-  subgraph offline["Offline training"]
+  subgraph offline["Batch training"]
     A[Raw CSV] --> B[Preprocess]
     B --> C[Feature engineering]
-    C --> D[Train / evaluate]
-    D --> E[(Models + thresholds)]
+    C --> D[Train and evaluate]
+    D --> E[Model and threshold files]
   end
   subgraph online["Online inference"]
-    F[HTTP client] --> G[FastAPI app.py]
-    G --> H[RollingFeatureStore]
-    H --> I[Model predict_proba]
+    F[Client] --> G[FastAPI]
+    G --> H[Rolling feature store]
+    H --> I[Scoring]
     I --> J[CSV logs]
   end
   E --> I
-  C -. feature parity .-> H
+  C -. aligned logic .-> H
 ```
 
-**Style:** Layered **API + domain + data** (not full MVC); suitable for a small ML service.
+The structure is a small service-oriented layout: HTTP layer, scoring and feature helpers, and file-backed persistence.
 
-## 3. Use case diagram
+## Use cases (diagram)
 
 ```mermaid
 flowchart TB
-  Client[Client / Integration]
-  Ops[Operator / Engineer]
-  Client --> UC1[UC-1 Predict failure]
-  Client --> UC4[UC-4 View metrics]
-  Client --> UC5[UC-5 Check drift]
-  Ops --> UC2[UC-2 Submit feedback]
-  Ops --> UC3[UC-3 Health check]
+  Client[Client system]
+  Ops[Operator or engineer]
+  Client --> UC1[Predict failure]
+  Client --> UC4[View metrics]
+  Client --> UC5[Check drift]
+  Ops --> UC2[Submit feedback]
+  Ops --> UC3[Health check]
 ```
 
-## 4. Component diagram
+## Components
 
 ```mermaid
 flowchart TB
-  subgraph api["API layer"]
+  subgraph api["API"]
     app[app.py]
   end
-  subgraph domain["Domain / ML"]
+  subgraph core["ML and features"]
     prep[data_preprocessing]
     fe[feature_engineering]
     serve[serving]
     train[model_training]
     eval[model_evaluation]
   end
-  subgraph data["Artifacts"]
+  subgraph store["Files"]
     cfg[config.yaml]
     mdl[best_model.joblib]
     thr[threshold JSON]
@@ -71,144 +71,141 @@ flowchart TB
   train --> thr
   app --> log
   app --> fb
-  serve --> cfg
   train --> cfg
+  serve --> cfg
 ```
 
-## 5. Deployment diagram (logical)
+## Deployment (logical)
 
 ```mermaid
 flowchart TB
-  subgraph host["Host machine / VM"]
-    uv[Uvicorn worker]
-    api[FastAPI process]
-    mon[monitor.py job]
+  subgraph machine["Host"]
+    uv[Uvicorn]
+    proc[FastAPI process]
+    job[monitor.py]
   end
-  subgraph disk["Local filesystem"]
+  subgraph fs["Filesystem"]
     cfg[config/]
     models[models/]
     out[outputs/monitoring/]
   end
   Client[HTTP clients] --> uv
-  uv --> api
-  api --> disk
-  mon --> disk
-  mon --> cfg
+  uv --> proc
+  proc --> fs
+  job --> fs
+  job --> cfg
 ```
 
-*Production would add reverse proxy, TLS, process manager, and remote artifact store.*
+A hardened deployment would add a reverse proxy, TLS, process supervision, and remote artifact storage.
 
-## 6. Sequence — prediction (`POST /predict`)
+## Sequence: prediction
 
 ```mermaid
 sequenceDiagram
   participant C as Client
-  participant A as FastAPI app.py
-  participant S as RollingFeatureStore / serving
-  participant M as Model joblib
-  participant L as predictions_log.csv
-  C->>A: POST /predict (sensor payload)
-  A->>S: build_online_features + align columns
-  S->>M: predict_proba(X)
-  M-->>S: probability
-  S-->>A: failure_probability, features row
-  A->>L: append row + request_id
+  participant A as FastAPI
+  participant S as Serving layer
+  participant M as Model
+  participant L as Prediction log
+  C->>A: POST /predict
+  A->>S: Build and align features
+  S->>M: predict_proba
+  M-->>S: Probability
+  A->>L: Append row
   A-->>C: JSON response
 ```
 
-## 7. Activity — monitoring & optional retrain
+## Activity: monitoring
 
 ```mermaid
 flowchart TD
-  Start([monitor.py]) --> Read[Read logs + config thresholds]
-  Read --> PSI{PSI / recall breach?}
-  PSI -->|No| Report[Write monitoring report]
-  PSI -->|Yes| Retrain{--retrain?}
+  Start([monitor.py]) --> Read[Load logs and thresholds]
+  Read --> Check{Breach?}
+  Check -->|No| Report[Write report]
+  Check -->|Yes| Retrain{Retrain flag}
   Retrain -->|No| Report
-  Retrain -->|Yes| Run[Execute main.py pipeline]
+  Retrain -->|Yes| Run[Run main.py]
   Run --> Report
-  Report --> End([Done])
+  Report --> End([Exit])
 ```
 
-## 8. Data flow (context DFD)
-
-**Context (level 0):**
+## Data flow (context)
 
 ```mermaid
 flowchart LR
-  Ext[External sensor / client] -->|Sensor readings| SYS[NHA-4-190 system]
-  SYS -->|Predictions + alerts| Ext
-  Ops2[Operator] -->|Feedback labels| SYS
+  Src[Sensor or client] --> Sys[NHA-4-190]
+  Sys --> Out[Predictions]
+  Op[Operator] --> Sys
 ```
 
-**Level 1 (summary):** Raw file → preprocess → features → model → API response; parallel path: logs → drift/metrics.
+Level 1: raw file → preprocess → features → score → response; logs feed metrics and drift.
 
-## 9. State diagram — prediction request (simplified)
+## Request state (simplified)
 
 ```mermaid
 stateDiagram-v2
   [*] --> Received
-  Received --> FeaturesBuilt: validate payload
-  FeaturesBuilt --> Scored: align + infer
-  Scored --> Logged: write CSV
+  Received --> Built: Valid payload
+  Built --> Scored: Inference
+  Scored --> Logged: Persist
   Logged --> [*]
-  Received --> Error: validation / internal error
-  Error --> [*]
+  Received --> Failed: Error
+  Failed --> [*]
 ```
 
-## 10. Class diagram — API models (Pydantic)
+## API payload models (Pydantic)
 
 ```mermaid
 classDiagram
   class SensorEvent {
-    +str asset_id
-    +str Type
-    +float Air_Temp
-    +float Process_Temp
-    +float Rotational_Speed
-    +float Torque
-    +float Tool_Wear
-    +int TWF
-    +int HDF
-    +int PWF
-    +int OSF
-    +int RNF
+    +asset_id
+    +Type
+    +Air_Temp
+    +Process_Temp
+    +Rotational_Speed
+    +Torque
+    +Tool_Wear
+    +TWF
+    +HDF
+    +PWF
+    +OSF
+    +RNF
   }
   class FeedbackEvent {
-    +str request_id
-    +int actual_failure
+    +request_id
+    +actual_failure
   }
 ```
 
-*Full OO design for sklearn estimators is intentionally shallow; the project centers on pipelines and functions.*
+Estimator internals follow scikit-learn conventions; the design emphasises pipelines and explicit feature names.
 
-## 11. Technology stack
+## Technology
 
-| Layer | Technology |
-|-------|------------|
-| Language | Python 3.10+ |
+| Layer | Choice |
+|--------|--------|
+| Runtime | Python 3.10+ |
 | ML | scikit-learn, XGBoost, imbalanced-learn |
 | API | FastAPI, Uvicorn, Pydantic v2 |
 | Config | PyYAML |
-| Serialization | joblib |
+| Model storage | joblib |
 
-## 12. API documentation
+## REST surface
 
-Authoritative request/response shapes are defined in **`app.py`** and the auto-generated **OpenAPI** docs at `/docs` when the server runs.
+Schemas are defined in `app.py`. With the server running, OpenAPI is available at `/docs`.
 
-| Method | Path | Purpose |
-|--------|------|---------|
-| GET | `/health` | Liveness + model metadata |
-| POST | `/predict` | Failure probability + binary decision |
-| POST | `/feedback` | Record actual outcome for a `request_id` |
-| GET | `/metrics` | Totals and predicted failure rate from log |
+| Method | Path | Role |
+|--------|------|------|
+| GET | `/health` | Liveness and model metadata |
+| POST | `/predict` | Score one observation |
+| POST | `/feedback` | Attach label to `request_id` |
+| GET | `/metrics` | Aggregates from the prediction log |
 | GET | `/drift` | PSI summary vs training reference |
 
-## 13. Future extensions
+## Future work
 
-- LSTM / transformers on longer sequences  
-- Multi-class failure modes  
-- Remaining useful life (RUL)  
-- Edge deployment  
-- Web dashboard for fleet health  
-- A/B testing for retrain validation  
+- Sequence models (e.g. LSTM or transformer) for longer histories  
+- Per failure-mode classification  
+- RUL estimation  
+- On-device or edge inference  
+- Operator dashboard  
+- Controlled experiments on retrained models  
