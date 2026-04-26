@@ -2,6 +2,17 @@
 
 Predicts equipment failures before they occur using IoT sensor data and machine learning.
 
+## Documentation (course / design)
+
+Structured deliverables live in **[`docs/`](docs/README.md)** — planning, requirements, system design (with diagrams), data model, testing, user manual, and a template for instructor feedback.
+
+## System requirements
+
+- **Python:** 3.10+ recommended (CI uses 3.11).
+- **OS:** Windows, macOS, or Linux.
+- **Hardware:** Sufficient RAM for pandas/sklearn (GridSearch is heavier; use `python main.py --skip-optimization` on small machines).
+- **Dataset:** AI4I 2020 CSV placed at `data/raw/ai4i2020.csv` before training.
+
 ## Dataset
 [AI4I 2020 Predictive Maintenance Dataset](https://archive.ics.uci.edu/ml/datasets/AI4I+2020+Predictive+Maintenance+Dataset)
 Place the CSV at `data/raw/ai4i2020.csv`.
@@ -9,23 +20,29 @@ Place the CSV at `data/raw/ai4i2020.csv`.
 ## Project Structure
 
 ```
-predictive_maintenance/
+NHA-4-190/
 ├── config/
 │   └── config.yaml          # All hyperparameters and paths (single source of truth)
 ├── data/
 │   └── raw/                 # Place ai4i2020.csv here
-├── models/                  # Saved .joblib model artifacts
+├── docs/                    # Course documentation (planning, design, testing, user manual)
+├── models/                  # Saved .joblib model artifacts + threshold JSON
+├── monitoring/
+│   └── monitor.py           # PSI / metrics / optional --retrain
 ├── notebooks/
 │   └── visualization.ipynb  # EDA + degradation plots + PCA (Colab-friendly)
 ├── outputs/
-│   └── plots/               # Confusion matrix PNGs saved here
+│   ├── plots/               # Confusion matrix PNGs
+│   └── monitoring/          # Prediction & feedback logs, monitoring report
 ├── src/
 │   ├── __init__.py
 │   ├── data_preprocessing.py
 │   ├── feature_engineering.py
 │   ├── model_training.py
 │   ├── model_evaluation.py
+│   ├── serving.py           # M4: online features, logging, PSI helpers
 │   └── utils.py
+├── app.py                   # FastAPI service (Milestone 4)
 ├── main.py                  # Pipeline entry point
 ├── requirements.txt
 └── README.md
@@ -36,7 +53,7 @@ predictive_maintenance/
 ```bash
 # 1. Clone and install
 git clone https://github.com/nhahub/NHA-4-190.git
-cd predictive_maintenance
+cd NHA-4-190
 pip install -r requirements.txt
 
 # 2. Add dataset
