@@ -9,8 +9,9 @@ build/
 .venv/
 venv/
 
-# Data (never commit raw data to git)
+# Data — ignore ad-hoc exports; ship canonical AI4I CSV for reproducibility
 data/raw/*.csv
+!data/raw/ai4i2020.csv
 data/raw/*.zip
 
 # Models (large binary files — use Git LFS or cloud storage)

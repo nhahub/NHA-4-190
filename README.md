@@ -11,11 +11,10 @@ Structured deliverables live in **[`docs/`](docs/README.md)** — planning, requ
 - **Python:** 3.10+ recommended (CI uses 3.11).
 - **OS:** Windows, macOS, or Linux.
 - **Hardware:** Sufficient RAM for pandas/sklearn (GridSearch is heavier; use `python main.py --skip-optimization` on small machines).
-- **Dataset:** AI4I 2020 CSV placed at `data/raw/ai4i2020.csv` before training.
+- **Dataset:** `data/raw/ai4i2020.csv` is included in the repository (UCI AI4I 2020). Replace it only if you use a different copy.
 
 ## Dataset
-[AI4I 2020 Predictive Maintenance Dataset](https://archive.ics.uci.edu/ml/datasets/AI4I+2020+Predictive+Maintenance+Dataset)
-Place the CSV at `data/raw/ai4i2020.csv`.
+[AI4I 2020 Predictive Maintenance Dataset](https://archive.ics.uci.edu/ml/datasets/AI4I+2020+Predictive+Maintenance+Dataset) — canonical file: `data/raw/ai4i2020.csv` (10,000 records; bundled for reproducibility).
 
 ## Project Structure
 
@@ -56,8 +55,7 @@ git clone https://github.com/nhahub/NHA-4-190.git
 cd NHA-4-190
 pip install -r requirements.txt
 
-# 2. Add dataset
-cp /path/to/ai4i2020.csv data/raw/
+# 2. Dataset is already at data/raw/ai4i2020.csv (or copy your own CSV there)
 
 # 3. Run the full pipeline
 python main.py
