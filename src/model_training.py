@@ -191,8 +191,9 @@ def run_training_pipeline(
         artifact_cfg = config["artifacts"]
         model_dir = artifact_cfg["model_dir"]
         save_artifact(rf_model,       f"{model_dir}/{artifact_cfg['rf_model_name']}")
-        save_artifact(rf_best_model,  f"{model_dir}/{artifact_cfg['best_model_name']}")  # ← rf_best_model now
+        save_artifact(rf_best_model,  f"{model_dir}/{artifact_cfg['best_model_name']}")
         save_artifact(xgb_base_model, f"{model_dir}/{artifact_cfg['xgb_model_name']}")
+        save_artifact(xgb_best_model, f"{model_dir}/{artifact_cfg['xgb_best_model_name']}")
 
     return {
         "rf": rf_model,

@@ -47,6 +47,7 @@ artifacts:
   rf_model_name: "random_forest_model.joblib"
   xgb_model_name: "xgboost_model.joblib"
   best_model_name: "best_model.joblib"
+  xgb_best_model_name: "xgboost_optimized_model.joblib"
   scaler_name: "scaler.joblib"
 
 deployment:

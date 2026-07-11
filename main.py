@@ -65,8 +65,9 @@ def main():
     logger.info("\n[M3] Model Evaluation")
     models_to_evaluate = {
         "Random Forest (Baseline)":  training_results["rf"],
-        "Random Forest (Optimized)": training_results["rf_best"],  # ← the tuned one
+        "Random Forest (Optimized)": training_results["rf_best"],
         "XGBoost (Baseline)":        training_results["xgb_base"],
+        "XGBoost (Optimized)":       training_results["xgb_best"],
     }
     evaluate_all_models(
         models_to_evaluate,
